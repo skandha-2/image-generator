@@ -2,7 +2,7 @@
 
 ### 🔄 Live HTML View
 
-[View live CI/CD diagram](https://skandha-2.github.io/)
+[View live CI/CD diagram](https://skandha-2.github.io/image-generator/)
 
 ### 🖼 Animated Overview (GIF)
 
