@@ -4,9 +4,9 @@ on:
   push:
     branches: [ main ]
     paths:
-      - generate_gif.py
+      - devops_poster.py
       - icons/**
-      - .github/workflows/generate-ci-cd-gif.yml
+      - .github/workflows/ci-cd-gif.yml
   workflow_dispatch:
 
 permissions:
