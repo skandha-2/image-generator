@@ -1,29 +1,28 @@
-from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
+from PIL import Image, ImageDraw, ImageFont
 import math
 import os
 
-# ────────────────────── Canvas & Colors ──────────────────────
-W, H = 1600, 900
+W, H = 1100, 700
 CENTER = (W // 2, H // 2)
-
-BG_COLOR = (255, 255, 255)      # WHITE background
+BG_COLOR = (255, 255, 255)
 TEXT_COLOR = (20, 24, 28)
 
 CENTER_FILL = (240, 245, 255)
 CENTER_OUTLINE = (100, 130, 200)
 
-NODE_CIRCLE = (230, 238, 255)   # light circle behind icons
+NODE_CIRCLE = (230, 238, 255)
 NODE_BORDER = (120, 150, 210)
-
-ARROW_COLOR = (120, 130, 150)
-
-TITLE = "CI/CD Pipeline Overview"
-SUBTITLE = "Fluxcd GitOps Pipeline with GitHub Actions"
-CENTER_LABEL = "Application\nDeployment Pipeline"
+ARROW_COLOR = (150, 160, 175)
+RING_COLOR = (220, 226, 240)
 
 ICONS_DIR = "icons"
+OUT_DIR = "docs"
+OUT_GIF = os.path.join(OUT_DIR, "ci_cd_pipeline.gif")
 
-# Steps around the circle (order matters)
+TITLE = "ci-cd.yml"
+SUBTITLE = "CI/CD: GitHub → Maven → Tests/CodeQL → Nexus → SonarQube → Docker → GitHub Packages → Helm → FluxCD"
+CENTER_LABEL = "GitHub Actions\nCI/CD Pipeline"
+
 STEPS = [
     {
         "label": "GitHub",
@@ -42,7 +41,7 @@ STEPS = [
     },
     {
         "label": "Nexus",
-        "desc": "Artifact\nrepository",
+        "desc": "Artifact repository",
         "icon": f"{ICONS_DIR}/nexus.png",
     },
     {
@@ -57,31 +56,36 @@ STEPS = [
     },
     {
         "label": "GH Packages",
-        "desc": "Container\nregistry",
+        "desc": "Container registry",
         "icon": f"{ICONS_DIR}/gh-packages.png",
     },
     {
         "label": "Helm",
-        "desc": "Chart\npackaging",
+        "desc": "Chart packaging",
         "icon": f"{ICONS_DIR}/helm.png",
     },
     {
         "label": "FluxCD",
-        "desc": "GitOps\ndeploy",
+        "desc": "GitOps deploy",
         "icon": f"{ICONS_DIR}/fluxcd.png",
     },
 ]
 
 
-# ──────────────────────── Helpers ────────────────────────────
-def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont):
-    """Return width, height for text using textbbox (Pillow ≥ 10)."""
+def load_icon(path, size=(64, 64)):
+    if not os.path.exists(path):
+        print(f"[WARN] Icon not found: {path}")
+        return None
+    img = Image.open(path).convert("RGBA")
+    return img.resize(size, Image.LANCZOS)
+
+
+def text_size(draw, text, font):
     bbox = draw.textbbox((0, 0), text, font=font)
     return bbox[2] - bbox[0], bbox[3] - bbox[1]
 
 
 def draw_centered_multiline(draw, xy, text, font, fill):
-    """Draw multiline text centered on (cx, cy)."""
     cx, cy = xy
     lines = text.split("\n")
     sizes = [text_size(draw, line, font) for line in lines]
@@ -92,59 +96,18 @@ def draw_centered_multiline(draw, xy, text, font, fill):
         y += h + 4
 
 
-def draw_arrow(draw, start, end, color, width=3, head_len=16, head_width=10):
-    """Draw a line with a triangular arrow head pointing to 'end'."""
-    x1, y1 = start
-    x2, y2 = end
-    draw.line([start, end], fill=color, width=width)
+def make_base_scene(fonts, icons):
+    """
+    Draw the static diagram (no animation ring) and return:
+      - base image (PIL.Image)
+      - list of node center positions
+    """
+    font_title, font_subtitle, font_center, font_node_label, font_node_desc = fonts
 
-    dx, dy = x2 - x1, y2 - y1
-    dist = math.hypot(dx, dy)
-    if dist == 0:
-        return
-    ux, uy = dx / dist, dy / dist
-
-    bx = x2 - ux * head_len
-    by = y2 - uy * head_len
-
-    px, py = -uy, ux
-    left = (bx + px * head_width, by + py * head_width)
-    right = (bx - px * head_width, by - py * head_width)
-
-    draw.polygon([end, left, right], fill=color)
-
-
-def load_icon(path: str, size=(72, 72)):
-    """Load an icon (RGBA) and resize. If missing/bad, return None."""
-    if not os.path.exists(path):
-        print(f"[WARN] Icon not found: {path}")
-        return None
-    try:
-        img = Image.open(path).convert("RGBA")
-    except UnidentifiedImageError:
-        print(f"[WARN] Cannot identify image file: {path}")
-        return None
-    img = img.resize(size, Image.LANCZOS)
-    return img
-
-
-# ───────────────────────── Main ─────────────────────────────
-def main():
     img = Image.new("RGB", (W, H), BG_COLOR)
     draw = ImageDraw.Draw(img)
 
-    # Fonts
-    try:
-        font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 40)
-        font_subtitle = ImageFont.truetype("DejaVuSans.ttf", 22)
-        font_center = ImageFont.truetype("DejaVuSans-Bold.ttf", 28)
-        font_node_label = ImageFont.truetype("DejaVuSans-Bold.ttf", 18)
-        font_node_desc = ImageFont.truetype("DejaVuSans.ttf", 16)
-    except OSError:
-        font_title = font_subtitle = font_center = \
-            font_node_label = font_node_desc = ImageFont.load_default()
-
-    # ── Header ──
+    # Header
     tw, th = text_size(draw, TITLE, font_title)
     draw.text(((W - tw) / 2, 30), TITLE, fill=TEXT_COLOR, font=font_title)
 
@@ -152,10 +115,9 @@ def main():
     draw.text(((W - sw) / 2, 30 + th + 6), SUBTITLE,
               fill=(80, 90, 100), font=font_subtitle)
 
-    # ── Center circle ──
+    # Center circle
     cx, cy = CENTER
-    center_r = 110
-
+    center_r = 90
     draw.ellipse(
         (cx - center_r, cy - center_r, cx + center_r, cy + center_r),
         fill=CENTER_FILL,
@@ -164,24 +126,23 @@ def main():
     )
     draw_centered_multiline(draw, (cx, cy), CENTER_LABEL, font_center, TEXT_COLOR)
 
-    # ── Circular icon nodes ──
-    radius_nodes = 320  # distance from center to node center
-    node_icon_radius = 50   # radius of colored circle around icon
+    # Nodes
+    radius_nodes = 220
+    node_icon_radius = 45
     node_centers = []
-
     n = len(STEPS)
 
     for i, step in enumerate(STEPS):
         label = step["label"]
         desc = step["desc"]
-        icon_path = step["icon"]
+        icon_key = step["icon"]
 
-        angle = 2 * math.pi * i / n - math.pi / 2  # start at top, clockwise
+        angle = 2 * math.pi * i / n - math.pi / 2
         nx = cx + radius_nodes * math.cos(angle)
         ny = cy + radius_nodes * math.sin(angle)
         node_centers.append((nx, ny))
 
-        # 1) Circular background behind icon
+        # circular badge
         draw.ellipse(
             (nx - node_icon_radius, ny - node_icon_radius,
              nx + node_icon_radius, ny + node_icon_radius),
@@ -190,60 +151,110 @@ def main():
             width=2,
         )
 
-        # 2) Icon in the center of that circle
-        icon = load_icon(icon_path, size=(72, 72))
+        icon = icons.get(icon_key)
         if icon is not None:
-            icon_x = int(nx - icon.width / 2)
-            icon_y = int(ny - icon.height / 2)
-            img.paste(icon, (icon_x, icon_y), icon)
+            ix = int(nx - icon.width / 2)
+            iy = int(ny - icon.height / 2)
+            img.paste(icon, (ix, iy), icon)
 
-        # 3) Label and description below the icon
-        #    (slightly moved outward from the center)
-        text_offset = 80
-        label_y = ny + text_offset
-
+        # label + desc
+        label_y = ny + node_icon_radius + 10
         lw, lh = text_size(draw, label, font_node_label)
-        draw.text(
-            (nx - lw / 2, label_y),
-            label,
-            fill=(30, 30, 40),
-            font=font_node_label,
-        )
+        draw.text((nx - lw / 2, label_y), label, fill=TEXT_COLOR, font=font_node_label)
 
         desc_lines = desc.split("\n")
         sizes = [text_size(draw, line, font_node_desc) for line in desc_lines]
-        total_h = sum(h for _, h in sizes) + (len(desc_lines) - 1) * 2
+        cur_y = label_y + lh + 2
+        for line, (dw, dh) in zip(desc_lines, sizes):
+            draw.text((nx - dw / 2, cur_y), line, fill=(90, 100, 110), font=font_node_desc)
+            cur_y += dh + 2
 
-        current_y = label_y + lh + 2
-        for (line, (dw, dh)) in zip(desc_lines, sizes):
-            draw.text(
-                (nx - dw / 2, current_y),
-                line,
-                fill=(80, 90, 100),
-                font=font_node_desc,
-            )
-            current_y += dh + 2
-
-    # ── Arrows between nodes following pipeline order ──
-    shrink = 60  # pull arrows back from node centers
+    # arrows between nodes
+    shrink = 50
     for i in range(n):
         x1, y1 = node_centers[i]
-        x2, y2 = node_centers[(i + 1) % n]  # next; wraps last → first
-
+        x2, y2 = node_centers[(i + 1) % n]
         dx, dy = x2 - x1, y2 - y1
         dist = math.hypot(dx, dy)
         if dist == 0:
             continue
         ux, uy = dx / dist, dy / dist
+        sx = x1 + ux * shrink
+        sy = y1 + uy * shrink
+        ex = x2 - ux * shrink
+        ey = y2 - uy * shrink
+        draw.line((sx, sy, ex, ey), fill=ARROW_COLOR, width=2)
 
-        start = (x1 + ux * shrink, y1 + uy * shrink)
-        end = (x2 - ux * shrink, y2 - uy * shrink)
+    return img, node_centers
 
-        draw_arrow(draw, start, end, ARROW_COLOR, width=3)
 
-    out_path = "ci_cd_circular_icons_white.png"
-    img.save(out_path)
-    print(f"Saved {out_path} in {os.getcwd()}")
+def main():
+    os.makedirs(OUT_DIR, exist_ok=True)
+
+    # Fonts
+    try:
+        font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 28)
+        font_subtitle = ImageFont.truetype("DejaVuSans.ttf", 16)
+        font_center = ImageFont.truetype("DejaVuSans-Bold.ttf", 18)
+        font_node_label = ImageFont.truetype("DejaVuSans-Bold.ttf", 14)
+        font_node_desc = ImageFont.truetype("DejaVuSans.ttf", 12)
+    except OSError:
+        font_title = font_subtitle = font_center = font_node_label = font_node_desc = ImageFont.load_default()
+
+    fonts = (font_title, font_subtitle, font_center, font_node_label, font_node_desc)
+
+    # Load icons once
+    icons = {}
+    for step in STEPS:
+        path = step["icon"]
+        if path not in icons:
+            icons[path] = load_icon(path)
+
+    base_img, _ = make_base_scene(fonts, icons)
+
+    # Generate frames with a small dot rotating around the center (looks "live")
+    frames = []
+    cx, cy = CENTER
+    ring_r = 260
+    num_frames = 32
+
+    for f in range(num_frames):
+        frame = base_img.copy()
+        draw = ImageDraw.Draw(frame)
+
+        angle = 2 * math.pi * f / num_frames - math.pi / 2
+        dx = ring_r * math.cos(angle)
+        dy = ring_r * math.sin(angle)
+        px = cx + dx
+        py = cy + dy
+
+        dot_r = 6
+        draw.ellipse(
+            (px - dot_r, py - dot_r, px + dot_r, py + dot_r),
+            fill=(100, 140, 230),
+            outline=(70, 100, 190),
+            width=2,
+        )
+
+        # faint ring behind the dot
+        draw.ellipse(
+            (cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r),
+            outline=RING_COLOR,
+            width=1,
+        )
+
+        frames.append(frame)
+
+    # Save animated GIF
+    frames[0].save(
+        OUT_GIF,
+        save_all=True,
+        append_images=frames[1:],
+        duration=120,  # ms per frame
+        loop=0,
+        optimize=True,
+    )
+    print(f"Saved GIF: {OUT_GIF}")
 
 
 if __name__ == "__main__":
