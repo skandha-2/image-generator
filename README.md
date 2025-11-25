@@ -1,3 +1,9 @@
-## Live CI/CD Diagram
+## CI/CD Pipeline
 
-👉 [View live CI/CD pipeline](https://skandha-2.github.io/image-generator/)
+### 🔄 Live HTML View
+
+[View live CI/CD diagram](https://skandha-2.github.io/image-generate/)
+
+### 🖼 Animated Overview (GIF)
+
+![CI/CD pipeline](docs/ci_cd_pipeline.gif)
