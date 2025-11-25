@@ -7,6 +7,7 @@ on:
       - devops_poster.py
       - icons/**
       - .github/workflows/ci-cd-gif.yml
+      
   workflow_dispatch:
 
 permissions:
