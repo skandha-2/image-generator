@@ -19,9 +19,9 @@ ICONS_DIR = "icons"
 OUT_DIR = "docs"
 OUT_GIF = os.path.join(OUT_DIR, "ci_cd_pipeline.gif")
 
-TITLE = "ci-cd.yml"
-SUBTITLE = "CI/CD: GitHub → Maven → Tests/CodeQL → Nexus → SonarQube → Docker → GitHub Packages → Helm → FluxCD"
-CENTER_LABEL = "GitHub Actions\nCI/CD Pipeline"
+TITLE = "DevOps CI/CD Pipeline"
+SUBTITLE = "Automated build, test, and deployment workflow"
+CENTER_LABEL = "Continuous Integration & Deployment"
 
 STEPS = [
     {
