@@ -34,7 +34,7 @@ jobs:
 
       - name: Generate animated CI/CD GIF
         run: |
-          python generate_gif.py
+          python devops_poster.py
 
       - name: Commit and push GIF if changed
         run: |
