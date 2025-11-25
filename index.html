@@ -180,6 +180,30 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
       }
     }
+
+    /* Arrows between steps */
+    .arrows-svg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      left: 0;
+      top: 0;
+    }
+
+    .arrow-step {
+      fill: none;
+      stroke: #a8b0c0;
+      stroke-width: 2;
+      marker-end: url(#arrowhead);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.2; }
+      50%      { opacity: 1;   }
+    }
   </style>
 </head>
 <body>
@@ -198,7 +222,7 @@
         <div class="center-node-sub">CI/CD Pipeline</div>
       </div>
 
-      <!-- Animated ring (live arrow effect) -->
+      <!-- Animated ring (live effect) -->
       <svg class="ring-svg" id="ring-svg" viewBox="0 0 200 200">
         <defs>
           <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -210,11 +234,20 @@
         <circle class="ring-progress" cx="100" cy="100" r="92"
                 style="stroke:url(#ringGrad); transform-origin: 50% 50%;"/>
       </svg>
+
+      <!-- Blinking arrows between steps -->
+      <svg class="arrows-svg" id="arrows-svg">
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="8" refY="3.5" orient="auto">
+            <polygon points="0 0, 8 3.5, 0 7" fill="#a8b0c0" />
+          </marker>
+        </defs>
+      </svg>
     </div>
   </div>
 
   <script>
-    // Steps config: label, desc, icon file relative to this HTML
+    // Steps in order around the circle
     const steps = [
       { label: "GitHub",         desc: "Repo & trigger",                 icon: "icons/github.png" },
       { label: "Maven",          desc: "Build (Java 21, WAR)",          icon: "icons/maven.png" },
@@ -228,25 +261,34 @@
     ];
 
     window.addEventListener("load", () => {
-      const canvas  = document.getElementById("canvas");
-      const ringSvg = document.getElementById("ring-svg");
+      const canvas    = document.getElementById("canvas");
+      const ringSvg   = document.getElementById("ring-svg");
+      const arrowsSvg = document.getElementById("arrows-svg");
 
       const centerX = canvas.clientWidth  / 2;
       const centerY = canvas.clientHeight / 2;
 
-      // --- exact radius of the animated ring in page pixels ---
-      // ring-svg viewBox is 0..200 and circle r=92
-      // scale factor = ringSvg.clientWidth / 200
+      // Ring radius in pixels (viewBox 0..200, r=92)
       const ringRadius = (ringSvg.clientWidth * 92) / 200;
 
-      // place icons exactly on the ring (slightly outside for visual balance)
-      const iconRadius = ringRadius; // you can use ringRadius + 4 if you want slightly outside
+      // Base radius for icons
+      const baseIconRadius = ringRadius;
 
+      const nodePositions = [];
+
+      // 1) Place nodes
       steps.forEach((step, index) => {
-        // equal spacing, starting at top (GitHub)
         const angle = (2 * Math.PI * index) / steps.length - Math.PI / 2;
-        const x = centerX + iconRadius * Math.cos(angle);
-        const y = centerY + iconRadius * Math.sin(angle);
+
+        let localRadius = baseIconRadius;
+        // Pull Docker & SonarQube slightly inward so they sit visually on the ring
+        if (step.label === "Docker" || step.label === "SonarQube") {
+          localRadius -= 10;
+        }
+
+        const x = centerX + localRadius * Math.cos(angle);
+        const y = centerY + localRadius * Math.sin(angle);
+        nodePositions.push({ x, y });
 
         const node = document.createElement("div");
         node.className = "node";
@@ -280,6 +322,36 @@
 
         canvas.appendChild(node);
       });
+
+      // 2) Blinking arrows between each consecutive step (circle)
+      const ns = "http://www.w3.org/2000/svg";
+      const shrink = 70; // pull arrow away from inside of icons
+
+      // match SVG coords to canvas pixels
+      arrowsSvg.setAttribute("viewBox", `0 0 ${canvas.clientWidth} ${canvas.clientHeight}`);
+
+      for (let i = 0; i < nodePositions.length; i++) {
+        const current = nodePositions[i];
+        const next    = nodePositions[(i + 1) % nodePositions.length];
+
+        const dx = next.x - current.x;
+        const dy = next.y - current.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist === 0) continue;
+
+        const ux = dx / dist;
+        const uy = dy / dist;
+
+        const startX = current.x + ux * shrink;
+        const startY = current.y + uy * shrink;
+        const endX   = next.x   - ux * shrink;
+        const endY   = next.y   - uy * shrink;
+
+        const path = document.createElementNS(ns, "path");
+        path.setAttribute("d", `M ${startX} ${startY} L ${endX} ${endY}`);
+        path.setAttribute("class", "arrow-step");
+        arrowsSvg.appendChild(path);
+      }
     });
   </script>
 </body>
