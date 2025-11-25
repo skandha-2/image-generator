@@ -38,13 +38,13 @@
     }
 
     .title {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 700;
       margin-bottom: 4px;
     }
 
     .subtitle {
-      font-size: 14px;
+      font-size: 20px;
       color: #5a6069;
     }
 
@@ -87,7 +87,7 @@
       color: #4a5260;
     }
 
-    /* Animated circular ring (behind nodes) */
+    /* Animated circular ring (with moving arrows) */
     .ring-svg {
       position: absolute;
       width: 520px;
@@ -109,19 +109,17 @@
       stroke: #6478c9;
       stroke-width: 6;
       stroke-linecap: round;
-      stroke-dasharray: 1500;
-      stroke-dashoffset: 1500;
-      animation: rotate-progress 10s linear infinite;
+      stroke-dasharray: 24 18; /* dash + gap */
+      stroke-dashoffset: 0;
+      animation: ring-move 4s linear infinite;
     }
 
-    @keyframes rotate-progress {
+    @keyframes ring-move {
       0% {
-        stroke-dashoffset: 1500;
-        transform: rotate(0deg);
+        stroke-dashoffset: 0;
       }
       100% {
-        stroke-dashoffset: 0;
-        transform: rotate(360deg);
+        stroke-dashoffset: -300;
       }
     }
 
@@ -181,28 +179,45 @@
       }
     }
 
-    /* Arrows between steps */
-    .arrows-svg {
+    /* START pill under GitHub */
+    .start-pill {
+      margin-top: 4px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: #16a34a;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Pulsing start dot on ring */
+    .start-dot {
       position: absolute;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1;
-      left: 0;
-      top: 0;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #16a34a;
+      box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6);
+      z-index: 3;
+      transform: translate(-50%, -50%);
+      animation: startPulse 1.4s ease-out infinite;
     }
 
-    .arrow-step {
-      fill: none;
-      stroke: #a8b0c0;
-      stroke-width: 2;
-      marker-end: url(#arrowhead);
-      animation: blink 1.5s ease-in-out infinite;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 0.2; }
-      50%      { opacity: 1;   }
+    @keyframes startPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6);
+        transform: translate(-50%, -50%) scale(1);
+      }
+      70% {
+        box-shadow: 0 0 0 16px rgba(22, 163, 74, 0);
+        transform: translate(-50%, -50%) scale(1.15);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+        transform: translate(-50%, -50%) scale(1);
+      }
     }
   </style>
 </head>
@@ -211,7 +226,7 @@
     <div class="header">
       <div class="title">DevOps CI/CD Pipeline</div>
       <div class="subtitle">
-        Automated build, test, and deployment workflow
+        Visualizing GitHub Actions Workflow Steps (Start → clockwise)
       </div>
     </div>
 
@@ -222,73 +237,103 @@
         <div class="center-node-sub">CI/CD Pipeline</div>
       </div>
 
-      <!-- Animated ring (live effect) -->
+      <!-- Animated ring with moving arrows -->
       <svg class="ring-svg" id="ring-svg" viewBox="0 0 200 200">
         <defs>
           <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stop-color="#6478c9"/>
             <stop offset="100%" stop-color="#59b6ff"/>
           </linearGradient>
-        </defs>
-        <circle class="ring-circle" cx="100" cy="100" r="92"/>
-        <circle class="ring-progress" cx="100" cy="100" r="92"
-                style="stroke:url(#ringGrad); transform-origin: 50% 50%;"/>
-      </svg>
 
-      <!-- Blinking arrows between steps -->
-      <svg class="arrows-svg" id="arrows-svg">
-        <defs>
-          <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="8" refY="3.5" orient="auto">
-            <polygon points="0 0, 8 3.5, 0 7" fill="#a8b0c0" />
+          <!-- Arrowhead for the moving dashes on the ring -->
+          <marker id="ringArrowHead"
+                  markerWidth="8" markerHeight="8"
+                  refX="6" refY="3.5"
+                  orient="auto"
+                  markerUnits="strokeWidth">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#6478c9" />
           </marker>
         </defs>
+
+        <!-- Faint base circle -->
+        <circle class="ring-circle" cx="100" cy="100" r="92"/>
+
+        <!-- Animated dashed circle with arrowheads -->
+        <circle class="ring-progress"
+                cx="100" cy="100" r="92"
+                style="stroke:url(#ringGrad);"
+                marker-mid="url(#ringArrowHead)"/>
       </svg>
     </div>
   </div>
 
   <script>
-    // Steps in order around the circle
+    // Steps in order around the circle (clockwise)
     const steps = [
-      { label: "GitHub",         desc: "Repo & trigger",                 icon: "icons/github.png" },
-      { label: "Maven",          desc: "Build (Java 21, WAR)",          icon: "icons/maven.png" },
-      { label: "Tests / CodeQL", desc: "Unit tests &\nstatic analysis", icon: "icons/codeql.png" },
-      { label: "Nexus",          desc: "Artifact repository",           icon: "icons/nexus.png" },
-      { label: "SonarQube",      desc: "Code quality &\nQuality Gate",  icon: "icons/sonarqube.png" },
-      { label: "Docker",         desc: "Image build &\nsecurity scan",  icon: "icons/docker.png" },
-      { label: "GH Packages",    desc: "Container registry",            icon: "icons/gh-packages.png" },
-      { label: "Helm",           desc: "Chart packaging",               icon: "icons/helm.png" },
-      { label: "FluxCD",         desc: "GitOps deploy",                 icon: "icons/fluxcd.png" },
+      { label: "GitHub",             desc: "Repo & trigger",        icon: "icons/github.png" },
+      { label: "Maven / Unit Tests", desc: "Build (Java 21, WAR)",  icon: "icons/maven.png" },
+      { label: "CodeQL",             desc: "Static analysis",       icon: "icons/codeql.png" },
+      { label: "Nexus",              desc: "Artifact repository",   icon: "icons/nexus.png" },
+      { label: "SonarQube",          desc: "Code quality &\nQuality Gate",  icon: "icons/sonarqube.png" },
+      { label: "Docker",             desc: "Image build &\nsecurity scan",  icon: "icons/docker.png" },
+      { label: "GH Packages",        desc: "Container registry",    icon: "icons/gh-packages.png" },
+      { label: "Helm",               desc: "Chart packaging",       icon: "icons/helm.png" },
+      { label: "FluxCD",             desc: "GitOps deploy",         icon: "icons/fluxcd.png" },
     ];
 
+    // Per-icon fine-tuning: radial & angle adjustments
+    const radialAdjust = {
+      "GitHub":             -24,
+      "Maven / Unit Tests": -14,
+      "CodeQL":             -11,
+      "Nexus":               0,
+      "SonarQube":          18,
+      "Docker":             25,
+      "GH Packages":        10,
+      "Helm":                0,
+      "FluxCD":            -11,
+    };
+
+    const angleAdjustDeg = {
+      "GitHub":             0,
+      "Maven / Unit Tests": 0,
+      "CodeQL":             0,
+      "Nexus":              0,
+      "SonarQube":          0,
+      "Docker":             0,
+      "GH Packages":        0,
+      "Helm":               0,
+      "FluxCD":             0,
+    };
+
     window.addEventListener("load", () => {
-      const canvas    = document.getElementById("canvas");
-      const ringSvg   = document.getElementById("ring-svg");
-      const arrowsSvg = document.getElementById("arrows-svg");
+      const canvas  = document.getElementById("canvas");
+      const ringSvg = document.getElementById("ring-svg");
 
       const centerX = canvas.clientWidth  / 2;
       const centerY = canvas.clientHeight / 2;
 
       // Ring radius in pixels (viewBox 0..200, r=92)
       const ringRadius = (ringSvg.clientWidth * 92) / 200;
-
-      // Base radius for icons
       const baseIconRadius = ringRadius;
 
-      const nodePositions = [];
+      let githubAngleRad = -Math.PI / 2; // default top
 
       // 1) Place nodes
       steps.forEach((step, index) => {
-        const angle = (2 * Math.PI * index) / steps.length - Math.PI / 2;
+        let angle = (2 * Math.PI * index) / steps.length - Math.PI / 2;
+        const aDeg = angleAdjustDeg[step.label] || 0;
+        angle += (aDeg * Math.PI) / 180;
 
-        let localRadius = baseIconRadius;
-        // Pull Docker & SonarQube slightly inward so they sit visually on the ring
-        if (step.label === "Docker" || step.label === "SonarQube") {
-          localRadius -= 10;
+        if (step.label === "GitHub") {
+          githubAngleRad = angle;
         }
+
+        const rOffset = radialAdjust[step.label] || 0;
+        const localRadius = baseIconRadius + rOffset;
 
         const x = centerX + localRadius * Math.cos(angle);
         const y = centerY + localRadius * Math.sin(angle);
-        nodePositions.push({ x, y });
 
         const node = document.createElement("div");
         node.className = "node";
@@ -318,40 +363,29 @@
         inner.appendChild(circle);
         inner.appendChild(label);
         inner.appendChild(desc);
-        node.appendChild(inner);
 
+        // Add START pill under GitHub node
+        if (step.label === "GitHub") {
+          const startPill = document.createElement("div");
+          startPill.className = "start-pill";
+          startPill.textContent = "START";
+          inner.appendChild(startPill);
+        }
+
+        node.appendChild(inner);
         canvas.appendChild(node);
       });
 
-      // 2) Blinking arrows between each consecutive step (circle)
-      const ns = "http://www.w3.org/2000/svg";
-      const shrink = 70; // pull arrow away from inside of icons
+      // 2) Add pulsing start dot on ring at GitHub start angle
+      const startDotRadius = ringRadius; // exactly on ring
+      const startX = centerX + startDotRadius * Math.cos(githubAngleRad);
+      const startY = centerY + startDotRadius * Math.sin(githubAngleRad);
 
-      // match SVG coords to canvas pixels
-      arrowsSvg.setAttribute("viewBox", `0 0 ${canvas.clientWidth} ${canvas.clientHeight}`);
-
-      for (let i = 0; i < nodePositions.length; i++) {
-        const current = nodePositions[i];
-        const next    = nodePositions[(i + 1) % nodePositions.length];
-
-        const dx = next.x - current.x;
-        const dy = next.y - current.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist === 0) continue;
-
-        const ux = dx / dist;
-        const uy = dy / dist;
-
-        const startX = current.x + ux * shrink;
-        const startY = current.y + uy * shrink;
-        const endX   = next.x   - ux * shrink;
-        const endY   = next.y   - uy * shrink;
-
-        const path = document.createElementNS(ns, "path");
-        path.setAttribute("d", `M ${startX} ${startY} L ${endX} ${endY}`);
-        path.setAttribute("class", "arrow-step");
-        arrowsSvg.appendChild(path);
-      }
+      const startDot = document.createElement("div");
+      startDot.className = "start-dot";
+      startDot.style.left = `${startX}px`;
+      startDot.style.top  = `${startY}px`;
+      canvas.appendChild(startDot);
     });
   </script>
 </body>
