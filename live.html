@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CI/CD Pipeline - Live Circular Diagram</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #14181c;
+    }
+
+    .wrapper {
+      width: 1100px;
+      height: 700px;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+      padding: 24px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #5a6069;
+    }
+
+    .canvas {
+      position: relative;
+      width: 100%;
+      height: 580px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Center circle */
+    .center-node {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #f5f8ff, #dde6ff);
+      border: 2px solid #6478c9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 2;
+    }
+
+    .center-node-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .center-node-sub {
+      font-size: 13px;
+      color: #4a5260;
+    }
+
+    /* Animated circular ring (behind nodes) */
+    .ring-svg {
+      position: absolute;
+      width: 480px;
+      height: 480px;
+      z-index: 0;
+    }
+
+    .ring-circle {
+      fill: none;
+      stroke: #e0e4f0;
+      stroke-width: 4;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: #6478c9;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 1500;
+      stroke-dashoffset: 1500;
+      animation: rotate-progress 10s linear infinite;
+    }
+
+    @keyframes rotate-progress {
+      0% {
+        stroke-dashoffset: 1500;
+        transform: rotate(0deg);
+      }
+      100% {
+        stroke-dashoffset: 0;
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Node (icon + label) */
+    .node {
+      position: absolute;
+      width: 170px;
+      text-align: center;
+      transform-origin: center center;
+    }
+
+    .node-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .node-icon-circle {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: #eef3ff;
+      border: 2px solid #b2c2f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .node-icon-circle img {
+      max-width: 72px;
+      max-height: 72px;
+      display: block;
+    }
+
+    .node-label {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .node-desc {
+      font-size: 11px;
+      color: #616774;
+      line-height: 1.3;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+    }
+
+    /* SVG arrows between nodes */
+    .arrows-svg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .arrow-path {
+      fill: none;
+      stroke: #a8b0c0;
+      stroke-width: 2;
+      marker-end: url(#arrowhead);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="title">ci-cd.yml</div>
+      <div class="subtitle">
+        CI/CD: GitHub → Maven → Tests/CodeQL → Nexus → SonarQube → Docker → GitHub Packages → Helm → FluxCD
+      </div>
+    </div>
+
+    <div class="canvas" id="canvas">
+      <!-- Center node -->
+      <div class="center-node">
+        <div class="center-node-title">GitHub Actions</div>
+        <div class="center-node-sub">CI/CD Pipeline</div>
+      </div>
+
+      <!-- Animated ring -->
+      <svg class="ring-svg" viewBox="0 0 200 200">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#6478c9"/>
+            <stop offset="100%" stop-color="#59b6ff"/>
+          </linearGradient>
+        </defs>
+        <circle class="ring-circle" cx="100" cy="100" r="90"/>
+        <circle class="ring-progress" cx="100" cy="100" r="90"
+                style="stroke:url(#ringGrad); transform-origin: 50% 50%;"/>
+      </svg>
+
+      <!-- Arrows layer -->
+      <svg class="arrows-svg" id="arrows-svg">
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="8" refY="3.5"
+                  orient="auto">
+            <polygon points="0 0, 8 3.5, 0 7" fill="#a8b0c0" />
+          </marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    // Steps config: label, desc, icon file relative to this HTML
+    const steps = [
+      {
+        label: "GitHub",
+        desc: "Repo & trigger",
+        icon: "icons/github.png",
+      },
+      {
+        label: "Maven",
+        desc: "Build (Java 21, WAR)",
+        icon: "icons/maven.png",
+      },
+      {
+        label: "Tests / CodeQL",
+        desc: "Unit tests &\nstatic analysis",
+        icon: "icons/codeql.png",
+      },
+      {
+        label: "Nexus",
+        desc: "Artifact repository",
+        icon: "icons/nexus.png",
+      },
+      {
+        label: "SonarQube",
+        desc: "Code quality &\nQuality Gate",
+        icon: "icons/sonarqube.png",
+      },
+      {
+        label: "Docker",
+        desc: "Image build &\nsecurity scan",
+        icon: "icons/docker.png",
+      },
+      {
+        label: "GH Packages",
+        desc: "Container registry",
+        icon: "icons/gh-packages.png",
+      },
+      {
+        label: "Helm",
+        desc: "Chart packaging",
+        icon: "icons/helm.png",
+      },
+      {
+        label: "FluxCD",
+        desc: "GitOps deploy",
+        icon: "icons/fluxcd.png",
+      },
+    ];
+
+    const canvas = document.getElementById("canvas");
+    const arrowsSvg = document.getElementById("arrows-svg");
+
+    const centerX = canvas.clientWidth / 2;
+    const centerY = canvas.clientHeight / 2;
+    const radius = 210; // distance from center to each icon-badge
+
+    // Create node elements
+    const nodePositions = [];
+
+    steps.forEach((step, index) => {
+      const angle = (2 * Math.PI * index) / steps.length - Math.PI / 2;
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      nodePositions.push({ x, y });
+
+      const node = document.createElement("div");
+      node.className = "node";
+      node.style.left = x + "px";
+      node.style.top = y + "px";
+      node.style.transform = "translate(-50%, -50%)";
+
+      const inner = document.createElement("div");
+      inner.className = "node-inner";
+
+      const circle = document.createElement("div");
+      circle.className = "node-icon-circle";
+
+      const img = document.createElement("img");
+      img.src = step.icon;
+      img.alt = step.label;
+      circle.appendChild(img);
+
+      const label = document.createElement("div");
+      label.className = "node-label";
+      label.textContent = step.label;
+
+      const desc = document.createElement("div");
+      desc.className = "node-desc";
+      desc.innerHTML = step.desc.replace(/\n/g, "<br>");
+
+      inner.appendChild(circle);
+      inner.appendChild(label);
+      inner.appendChild(desc);
+      node.appendChild(inner);
+
+      canvas.appendChild(node);
+    });
+
+    // Draw arrows between node centers (circular flow)
+    const svgRect = arrowsSvg.getBoundingClientRect();
+    const offsetLeft = svgRect.left;
+    const offsetTop = svgRect.top;
+
+    const ns = "http://www.w3.org/2000/svg";
+
+    for (let i = 0; i < nodePositions.length; i++) {
+      const current = nodePositions[i];
+      const next = nodePositions[(i + 1) % nodePositions.length];
+
+      // Slightly shrink start & end towards circle to avoid overlapping icons
+      const dx = next.x - current.x;
+      const dy = next.y - current.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist === 0) continue;
+
+      const ux = dx / dist;
+      const uy = dy / dist;
+
+      const shrink = 70;
+      const startX = current.x + ux * shrink;
+      const startY = current.y + uy * shrink;
+      const endX = next.x - ux * shrink;
+      const endY = next.y - uy * shrink;
+
+      const path = document.createElementNS(ns, "path");
+      const sx = startX - offsetLeft;
+      const sy = startY - offsetTop;
+      const ex = endX - offsetLeft;
+      const ey = endY - offsetTop;
+
+      // Simple straight line; you can change to curves if you like
+      const d = `M ${sx} ${sy} L ${ex} ${ey}`;
+      path.setAttribute("d", d);
+      path.setAttribute("class", "arrow-path");
+      arrowsSvg.appendChild(path);
+    }
+  </script>
+</body>
+</html>
